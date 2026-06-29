@@ -1,0 +1,35 @@
+Attribute VB_Name = "ModuleDashboard"
+' ============================================================
+' MODULE : ModuleDashboard  [RÉSERVÉ — ARCHITECTURE FUTURE]
+' Génération d'un dashboard Excel avec graphiques automatiques,
+' filtres par activité/équipe/ville, et KPIs hebdomadaires
+'
+' Dépendances prévues :
+'   ModulePlanning      → données brutes
+'   ModuleStatistiques  → entrées/sorties agrégées
+'   ModuleRenforts      → taux d'occupation, sous-effectifs
+' ============================================================
+Option Explicit
+
+Public Const NOM_FEUILLE_DASHBOARD As String = "DASHBOARD"
+
+' ============================================================
+' [FUTUR] Générer le dashboard complet
+' ============================================================
+Public Sub GenererDashboard()
+    MsgBox "Module Dashboard : fonctionnalité à venir.", vbInformation
+End Sub
+
+' ============================================================
+' [FUTUR] Créer un graphique d'entrées par jour
+' ============================================================
+Public Sub GraphiqueEntreesParJour()
+    MsgBox "Module Dashboard : fonctionnalité à venir.", vbInformation
+End Sub
+
+' ============================================================
+' [FUTUR] Créer un graphique effectif temps réel
+' ============================================================
+Public Sub GraphiqueEffectifTempsReel()
+    MsgBox "Module Dashboard : fonctionnalité à venir.", vbInformation
+End Sub
