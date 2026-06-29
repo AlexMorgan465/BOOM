@@ -1566,14 +1566,11 @@ End Sub
 '   Planning fixe : 08:00-17:00 du Lundi au Vendredi, OFF Samedi et Dimanche
 '
 ' ABDELAOUI KHADIJA & AZIANE YASSINE
-'   Planning en rotation hebdomadaire (IndexRotation pair/impair) :
-'   - Mardi    : 08:00 - 18:00
-'   - Mercredi : 08:00 - 18:00
-'   - Jeudi    : 08:00 - 17:00
-'   - Vendredi : 08:00 - 17:00
-'   - Samedi   : rotation 08:00-14:00 / OFF (une semaine sur deux)
-'   - Lundi    : même état que Samedi (travaille si Sam travaillé)
-'   - Dimanche : OFF fixe
+'   Chaque agent a 2 jours OFF : Dimanche (fixe) + Lundi ou Samedi (rotation)
+'   L un a OFF Lundi  => travaille Sam 08:00-14:00
+'   L autre a OFF Sam => travaille Lundi 08:00-17:00
+'   Ils alternent chaque semaine via IndexRotation
+'   Mardi-Mercredi : 08:00-18:00 | Jeudi-Vendredi : 08:00-17:00
 ' ============================================================
 Sub GenererPlanningTLV(collabs() As Collaborateur, nb As Integer)
     Dim ws As Worksheet
@@ -1628,23 +1625,38 @@ Sub GenererPlanningTLV(collabs() As Collaborateur, nb As Integer)
 
         ' -------------------------------------------------------
         ' Groupe 2 : ABDELAOUI et AZIANE — rotation hebdomadaire
-        ' IndexRotation pair   => travaille Samedi et Lundi
-        ' IndexRotation impair => OFF Samedi et OFF Lundi
+        ' Chaque agent a 2 jours OFF : Dimanche fixe + 1 jour rotatif
+        ' Un agent a OFF Lundi, l'autre a OFF Samedi — ils alternent chaque semaine
+        '
+        ' ABDELAOUI (IndexRotation pair)   : OFF Lundi | Sam 08:00-14:00
+        ' ABDELAOUI (IndexRotation impair) : OFF Samedi | Lundi 08:00-17:00
+        ' AZIANE    (IndexRotation pair)   : OFF Samedi | Lundi 08:00-17:00
+        ' AZIANE    (IndexRotation impair) : OFF Lundi  | Sam 08:00-14:00
+        '
+        ' Mardi-Mercredi : 08:00-18:00 | Jeudi-Vendredi : 08:00-17:00 | Dim : OFF fixe
         ' -------------------------------------------------------
         ElseIf nomAgent = UCase(NOM_ABDELAOUI) Or nomAgent = UCase(NOM_AZIANE) Then
-            Dim travailleSam As Boolean
-            travailleSam = ((collabs(idx).IndexRotation Mod 2) = 0)
+            ' Calcul du jour OFF rotatif :
+            ' ABDELAOUI pair => OFF Lundi ; AZIANE pair => OFF Samedi (et vice versa impair)
+            Dim offLundi As Boolean
+            If nomAgent = UCase(NOM_ABDELAOUI) Then
+                offLundi = ((collabs(idx).IndexRotation Mod 2) = 0)
+            Else  ' AZIANE
+                offLundi = ((collabs(idx).IndexRotation Mod 2) = 1)
+            End If
+            ' offLundi=True  => OFF Lundi + Sam 08:00-14:00
+            ' offLundi=False => OFF Samedi + Lundi 08:00-17:00
 
             For j = 1 To 7
                 Select Case j
-                    Case 1  ' Lundi : même état que Samedi
-                        If travailleSam Then
+                    Case 1  ' Lundi
+                        If offLundi Then
+                            cellules(j) = "OFF"
+                            entTab(j) = "": sorTab(j) = "": pdTab(j) = "": pfTab(j) = ""
+                        Else
                             cellules(j) = FormatCelluleJour("08:00", "17:00", "13:00", "14:00")
                             entTab(j) = "08:00": sorTab(j) = "17:00"
                             pdTab(j) = "13:00": pfTab(j) = "14:00"
-                        Else
-                            cellules(j) = "OFF"
-                            entTab(j) = "": sorTab(j) = "": pdTab(j) = "": pfTab(j) = ""
                         End If
                     Case 2  ' Mardi 08:00-18:00
                         cellules(j) = FormatCelluleJour("08:00", "18:00", "13:00", "14:00")
@@ -1662,12 +1674,14 @@ Sub GenererPlanningTLV(collabs() As Collaborateur, nb As Integer)
                         cellules(j) = FormatCelluleJour("08:00", "17:00", "13:00", "14:00")
                         entTab(j) = "08:00": sorTab(j) = "17:00"
                         pdTab(j) = "13:00": pfTab(j) = "14:00"
-                    Case 6  ' Samedi : rotation 08:00-14:00 / OFF
-                        If travailleSam Then
+                    Case 6  ' Samedi
+                        If offLundi Then
+                            ' Travaille Samedi 08:00-14:00
                             cellules(j) = FormatCelluleJour("08:00", "14:00", "", "")
                             entTab(j) = "08:00": sorTab(j) = "14:00"
                             pdTab(j) = "": pfTab(j) = ""
                         Else
+                            ' OFF Samedi
                             cellules(j) = "OFF"
                             entTab(j) = "": sorTab(j) = "": pdTab(j) = "": pfTab(j) = ""
                         End If
