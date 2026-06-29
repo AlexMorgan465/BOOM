@@ -134,7 +134,7 @@ Private Function GenererTableau(ws As Worksheet, ligneDebut As Long, _
 
     For j = 1 To nbJours
         Dim nomJ As String: nomJ = NomJour(j)
-        Dim couleurJour As Long: couleurJour = CouleurJour(j)
+        Dim bgJour As Long: bgJour = CouleurJour(j)
 
         For v = 1 To nbVilles
             Dim ville As String: ville = villes(v)
@@ -145,7 +145,7 @@ Private Function GenererTableau(ws As Worksheet, ligneDebut As Long, _
             With ws.Cells(ligneData, 1)
                 .Font.Bold = True
                 .Font.Color = RGB(255, 255, 255)
-                .Interior.Color = couleurJour
+                .Interior.Color = bgJour
                 .HorizontalAlignment = xlLeft
                 .IndentLevel = 1
             End With
