@@ -1,4 +1,5 @@
 Attribute VB_Name = "BOOM"
+
 ' ============================================================
 ' GÉNÉRATEUR AUTOMATIQUE DE PLANNING HEBDOMADAIRE - V6
 ' ============================================================
@@ -223,8 +224,8 @@ Function EstEnTT(c As Collaborateur, d As Date) As Boolean
     EstEnTT = (d >= c.TTDebut And d <= c.TTFin)
 End Function
 
-Function NomJourToIndex(nomJour As String) As Integer
-    Select Case UCase(Trim(nomJour))
+Function NomJourToIndex(NomJour As String) As Integer
+    Select Case UCase(Trim(NomJour))
         Case "LUNDI":    NomJourToIndex = 1
         Case "MARDI":    NomJourToIndex = 2
         Case "MERCREDI": NomJourToIndex = 3
@@ -1019,8 +1020,8 @@ Sub AfficherRenfortsDansPlanning(collabs() As Collaborateur, nb As Integer)
 
     Dim r As Long
     For r = 2 To lastRow
-        Dim statut As String: statut = CStr(wsB.Cells(r, 9).Value)
-        If Left(statut, 2) <> "OK" And Left(statut, 7) <> "PARTIEL" Then GoTo NextR
+        Dim Statut As String: Statut = CStr(wsB.Cells(r, 9).Value)
+        If Left(Statut, 2) <> "OK" And Left(Statut, 7) <> "PARTIEL" Then GoTo NextR
 
         Dim proposes As String: proposes = CStr(wsB.Cells(r, 7).Value)
         If proposes = "" Or proposes = "Aucun candidat disponible" Then GoTo NextR
@@ -2080,5 +2081,6 @@ End Sub
 Sub ActualiserStatistiques()
     ModuleTableaux.GenererFeuille
 End Sub
+
 
 
