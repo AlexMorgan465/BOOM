@@ -71,8 +71,6 @@ Sub GenererPlanning()
     Application.Calculation = xlCalculationManual
     On Error GoTo ErrHandler
 
-    ModuleParametres.InitialiserFeuilleParametres
-
     If Not VerifierFeuillesExistantes() Then
         MsgBox "Erreur : certaines feuilles requises sont manquantes.", vbCritical
         GoTo Cleanup
@@ -1113,25 +1111,6 @@ Sub GenererPlanningFixe(nomFeuille As String, collabs() As Collaborateur, nb As 
     Set ws = ThisWorkbook.Sheets(nomFeuille)
     EcrireEnTeteHorizontale ws, nomFeuille
 
-    ' Prefixe des cles de parametres pour ce projet (voir ModuleParametres)
-    Dim px As String
-    Select Case UCase(nomFeuille)
-        Case "AFEDIM":        px = "AFEDIM"
-        Case "ACCESSIBILITE": px = "ACCESSIBILITE"
-        Case Else:             px = "CMLEASING"   ' CM Leasing
-    End Select
-
-    Dim lj_e As String, lj_s As String, lj_pd As String, lj_pf As String
-    Dim ve_e As String, ve_s As String, ve_pd As String, ve_pf As String
-    lj_e = ModuleParametres.GetParam(px & "_LUNJEU_ENTREE", "08:00")
-    lj_s = ModuleParametres.GetParam(px & "_LUNJEU_SORTIE", "18:00")
-    lj_pd = ModuleParametres.GetParam(px & "_LUNJEU_PAUSED", "13:00")
-    lj_pf = ModuleParametres.GetParam(px & "_LUNJEU_PAUSEF", "14:00")
-    ve_e = ModuleParametres.GetParam(px & "_VEN_ENTREE", "08:00")
-    ve_s = ModuleParametres.GetParam(px & "_VEN_SORTIE", "17:00")
-    ve_pd = ModuleParametres.GetParam(px & "_VEN_PAUSED", "13:00")
-    ve_pf = ModuleParametres.GetParam(px & "_VEN_PAUSEF", "14:00")
-
     Dim ligne As Integer: ligne = 4
     Dim i As Integer
     For i = 1 To nb
@@ -1146,13 +1125,13 @@ Sub GenererPlanningFixe(nomFeuille As String, collabs() As Collaborateur, nb As 
             For j = 1 To 7
                 Select Case j
                     Case 1, 2, 3, 4
-                        cellules(j) = FormatCelluleJour(lj_e, lj_s, lj_pd, lj_pf)
-                        entrees(j) = lj_e: sorties(j) = lj_s
-                        pDs(j) = lj_pd: pFs(j) = lj_pf
+                        cellules(j) = FormatCelluleJour("08:00", "18:00", "13:00", "14:00")
+                        entrees(j) = "08:00": sorties(j) = "18:00"
+                        pDs(j) = "13:00": pFs(j) = "14:00"
                     Case 5
-                        cellules(j) = FormatCelluleJour(ve_e, ve_s, ve_pd, ve_pf)
-                        entrees(j) = ve_e: sorties(j) = ve_s
-                        pDs(j) = ve_pd: pFs(j) = ve_pf
+                        cellules(j) = FormatCelluleJour("08:00", "17:00", "13:00", "14:00")
+                        entrees(j) = "08:00": sorties(j) = "17:00"
+                        pDs(j) = "13:00": pFs(j) = "14:00"
                     Case Else
                         cellules(j) = "OFF"
                         entrees(j) = "": sorties(j) = "": pDs(j) = "": pFs(j) = ""
@@ -1191,20 +1170,9 @@ Sub GenererPlanningGLF(collabs() As Collaborateur, nb As Integer)
     Set ws = ThisWorkbook.Sheets("GLF")
     EcrireEnTeteHorizontale ws, "GLF"
 
-    Dim vaguesListe As Variant
-    vaguesListe = ModuleParametres.GetParamListe("GLF_VAGUES", "12:00,12:30,13:00,13:30,14:00")
     Dim vaguesPause(1 To 5) As String
-    Dim vp As Integer
-    For vp = 1 To 5
-        If vp - 1 <= UBound(vaguesListe) Then vaguesPause(vp) = Trim(vaguesListe(vp - 1))
-    Next vp
-    Dim glfDureePause As Integer
-    glfDureePause = CInt(ModuleParametres.GetParamNum("GLF_PAUSE_DUREE_MIN", 60))
-    Dim glf_lj_e As String, glf_lj_s As String, glf_ve_e As String, glf_ve_s As String
-    glf_lj_e = ModuleParametres.GetParam("GLF_LUNJEU_ENTREE", "08:00")
-    glf_lj_s = ModuleParametres.GetParam("GLF_LUNJEU_SORTIE", "18:00")
-    glf_ve_e = ModuleParametres.GetParam("GLF_VEN_ENTREE", "08:00")
-    glf_ve_s = ModuleParametres.GetParam("GLF_VEN_SORTIE", "17:00")
+    vaguesPause(1) = "12:00": vaguesPause(2) = "12:30": vaguesPause(3) = "13:00"
+    vaguesPause(4) = "13:30": vaguesPause(5) = "14:00"
 
     Dim glfIdx() As Integer
     Dim nbGLF As Integer: nbGLF = 0
@@ -1226,7 +1194,7 @@ Sub GenererPlanningGLF(collabs() As Collaborateur, nb As Integer)
         Dim vagueIdx As Integer
         vagueIdx = ((groupeBase + collabs(idx).IndexRotation) Mod 5) + 1
         Dim pauseH As String: pauseH = vaguesPause(vagueIdx)
-        Dim pauseF As String: pauseF = AjouterMinutes(pauseH, glfDureePause)
+        Dim pauseF As String: pauseF = AjouterMinutes(pauseH, 60)
 
         Dim cellules(1 To 7) As String
         Dim entrees(1 To 7) As String
@@ -1238,12 +1206,12 @@ Sub GenererPlanningGLF(collabs() As Collaborateur, nb As Integer)
         For j = 1 To 7
             Select Case j
                 Case 1, 2, 3, 4
-                    cellules(j) = FormatCelluleJour(glf_lj_e, glf_lj_s, pauseH, pauseF)
-                    entrees(j) = glf_lj_e: sorties(j) = glf_lj_s
+                    cellules(j) = FormatCelluleJour("08:00", "18:00", pauseH, pauseF)
+                    entrees(j) = "08:00": sorties(j) = "18:00"
                     pDs(j) = pauseH: pFs(j) = pauseF
                 Case 5
-                    cellules(j) = FormatCelluleJour(glf_ve_e, glf_ve_s, pauseH, pauseF)
-                    entrees(j) = glf_ve_e: sorties(j) = glf_ve_s
+                    cellules(j) = FormatCelluleJour("08:00", "17:00", pauseH, pauseF)
+                    entrees(j) = "08:00": sorties(j) = "17:00"
                     pDs(j) = pauseH: pFs(j) = pauseF
                 Case Else
                     cellules(j) = "OFF"
@@ -1261,7 +1229,7 @@ Sub GenererPlanningGLF(collabs() As Collaborateur, nb As Integer)
     ws.Cells(ligne, 1).Font.Bold = True: ws.Cells(ligne, 1).Font.Color = RGB(31, 73, 125)
     Dim v As Integer
     For v = 1 To 5
-        ws.Cells(ligne + v, 1).Value = "Vague " & v & " : " & vaguesPause(v) & "-" & AjouterMinutes(vaguesPause(v), glfDureePause)
+        ws.Cells(ligne + v, 1).Value = "Vague " & v & " : " & vaguesPause(v) & "-" & AjouterMinutes(vaguesPause(v), 60)
     Next v
     AppliquerBorduresH ws, 4, ligne - 2
 End Sub
@@ -1274,20 +1242,9 @@ Sub GenererPlanningEBRA(collabs() As Collaborateur, nb As Integer)
     Set ws = ThisWorkbook.Sheets("EBRA")
     EcrireEnTeteHorizontale ws, "EBRA"
 
-    Dim vaguesListeE As Variant
-    vaguesListeE = ModuleParametres.GetParamListe("EBRA_VAGUES", "11:00,11:30,12:00,12:30,13:00")
     Dim vaguesPause(1 To 5) As String
-    Dim vpe As Integer
-    For vpe = 1 To 5
-        If vpe - 1 <= UBound(vaguesListeE) Then vaguesPause(vpe) = Trim(vaguesListeE(vpe - 1))
-    Next vpe
-    Dim ebraDureePause As Integer
-    ebraDureePause = CInt(ModuleParametres.GetParamNum("EBRA_PAUSE_DUREE_MIN", 60))
-    Dim ebra_sem_e As String, ebra_sem_s As String, ebra_sam_e As String, ebra_sam_s As String
-    ebra_sem_e = ModuleParametres.GetParam("EBRA_SEM_ENTREE", "07:00")
-    ebra_sem_s = ModuleParametres.GetParam("EBRA_SEM_SORTIE", "16:00")
-    ebra_sam_e = ModuleParametres.GetParam("EBRA_SAM_ENTREE", "07:00")
-    ebra_sam_s = ModuleParametres.GetParam("EBRA_SAM_SORTIE", "11:00")
+    vaguesPause(1) = "11:00": vaguesPause(2) = "11:30": vaguesPause(3) = "12:00"
+    vaguesPause(4) = "12:30": vaguesPause(5) = "13:00"
 
     Dim ebraIdx() As Integer
     Dim nbEBRA As Integer: nbEBRA = 0
@@ -1309,7 +1266,7 @@ Sub GenererPlanningEBRA(collabs() As Collaborateur, nb As Integer)
         Dim vagueIdx As Integer
         vagueIdx = ((groupeBase + collabs(idx).IndexRotation) Mod 5) + 1
         Dim pauseH As String: pauseH = vaguesPause(vagueIdx)
-        Dim pauseF As String: pauseF = AjouterMinutes(pauseH, ebraDureePause)
+        Dim pauseF As String: pauseF = AjouterMinutes(pauseH, 60)
 
         Dim cellules(1 To 7) As String
         Dim entrees(1 To 7) As String
@@ -1321,12 +1278,12 @@ Sub GenererPlanningEBRA(collabs() As Collaborateur, nb As Integer)
         For j = 1 To 7
             Select Case j
                 Case 1 To 5
-                    cellules(j) = FormatCelluleJour(ebra_sem_e, ebra_sem_s, pauseH, pauseF)
-                    entrees(j) = ebra_sem_e: sorties(j) = ebra_sem_s
+                    cellules(j) = FormatCelluleJour("07:00", "16:00", pauseH, pauseF)
+                    entrees(j) = "07:00": sorties(j) = "16:00"
                     pDs(j) = pauseH: pFs(j) = pauseF
                 Case 6
-                    cellules(j) = FormatCelluleJour(ebra_sam_e, ebra_sam_s, "", "")
-                    entrees(j) = ebra_sam_e: sorties(j) = ebra_sam_s
+                    cellules(j) = FormatCelluleJour("07:00", "11:00", "", "")
+                    entrees(j) = "07:00": sorties(j) = "11:00"
                     pDs(j) = "": pFs(j) = ""
                 Case 7
                     cellules(j) = "OFF"
@@ -1344,9 +1301,9 @@ Sub GenererPlanningEBRA(collabs() As Collaborateur, nb As Integer)
     ws.Cells(ligne, 1).Font.Bold = True: ws.Cells(ligne, 1).Font.Color = RGB(31, 73, 125)
     Dim v As Integer
     For v = 1 To 5
-        ws.Cells(ligne + v, 1).Value = "Vague " & v & " : " & vaguesPause(v) & "-" & AjouterMinutes(vaguesPause(v), ebraDureePause)
+        ws.Cells(ligne + v, 1).Value = "Vague " & v & " : " & vaguesPause(v) & "-" & AjouterMinutes(vaguesPause(v), 60)
     Next v
-    ws.Cells(ligne + 6, 1).Value = "Sam " & ebra_sam_e & "-" & ebra_sam_s & " sans pause | Dim OFF"
+    ws.Cells(ligne + 6, 1).Value = "Sam 07:00-11:00 sans pause | Dim OFF"
     ws.Cells(ligne + 6, 1).Font.Italic = True
     AppliquerBorduresH ws, 4, ligne - 2
 End Sub
@@ -1371,20 +1328,14 @@ Sub GenererPlanningGOOGLELEADS(collabs() As Collaborateur, nb As Integer)
     Dim sorties(1 To 5) As String
     Dim sortiesReduit(1 To 5) As String
     Dim estShiftReduitParDefaut(1 To 5) As Boolean  ' True si le shift est "réduit" par nature
-    Dim sIdx As Integer
-    For sIdx = 1 To 5
-        entrees(sIdx) = ModuleParametres.GetParam("GL_SHIFT" & sIdx & "_ENTREE")
-        sorties(sIdx) = ModuleParametres.GetParam("GL_SHIFT" & sIdx & "_SORTIE")
-        sortiesReduit(sIdx) = ModuleParametres.GetParam("GL_SHIFT" & sIdx & "_SORTIE_REDUITE")
-        estShiftReduitParDefaut(sIdx) = False
-    Next sIdx
-    ' Le shift 5 (11H par défaut) est intrinsèquement un "shift réduit" :
-    ' un agent affecté à ce shift a DÉJÀ son quota de 1 shift réduit
+    entrees(1) = "07:00": sorties(1) = "17:00": sortiesReduit(1) = "16:00": estShiftReduitParDefaut(1) = False
+    entrees(2) = "08:00": sorties(2) = "18:00": sortiesReduit(2) = "17:00": estShiftReduitParDefaut(2) = False
+    entrees(3) = "09:00": sorties(3) = "19:00": sortiesReduit(3) = "18:00": estShiftReduitParDefaut(3) = False
+    entrees(4) = "10:00": sorties(4) = "20:00": sortiesReduit(4) = "19:00": estShiftReduitParDefaut(4) = False
+    entrees(5) = "07:00": sorties(5) = "17:00": sortiesReduit(5) = "16:00": estShiftReduitParDefaut(1) = False
+    ' Le shift 11H (index 5) est intrinsèquement un "shift réduit" :
+    ' un agent affecté au shift 5 a DÉJÀ son quota de 1 shift réduit
     ' → il ne peut pas recevoir un 2ème jour en horaire raccourci
-    Dim glPauseOffsetMin As Integer, glPauseDureeMin As Integer, glReduitDiviseur As Integer
-    glPauseOffsetMin = CInt(ModuleParametres.GetParamNum("GL_PAUSE_OFFSET_MIN", 300))
-    glPauseDureeMin = CInt(ModuleParametres.GetParamNum("GL_PAUSE_DUREE_MIN", 60))
-    glReduitDiviseur = CInt(ModuleParametres.GetParamNum("GL_REDUIT_DIVISEUR", 7))
 
     Dim glIdx() As Integer
     Dim nbGL As Integer: nbGL = 0
@@ -1413,17 +1364,12 @@ Sub GenererPlanningGOOGLELEADS(collabs() As Collaborateur, nb As Integer)
     Next k
 
     ' Quotas OFF par jour
-    Dim glQuotaSem As Integer, glQuotaSam As Integer, glQuotaDim As Integer
-    glQuotaSem = CInt(ModuleParametres.GetParamNum("GL_QUOTA_OFF_SEMAINE", 5))
-    glQuotaSam = CInt(ModuleParametres.GetParamNum("GL_QUOTA_OFF_SAMEDI", 6))
-    glQuotaDim = CInt(ModuleParametres.GetParamNum("GL_QUOTA_OFF_DIMANCHE", 7))
-
     Dim quotaOFF(1 To 7) As Integer
     For j = 1 To 7
         Select Case j
-            Case 7:    quotaOFF(j) = Application.WorksheetFunction.Max(0, glQuotaDim - congeParJour(j))
-            Case 6:    quotaOFF(j) = Application.WorksheetFunction.Max(0, glQuotaSam - congeParJour(j))
-            Case Else: quotaOFF(j) = Application.WorksheetFunction.Max(0, glQuotaSem - congeParJour(j))
+            Case 7:    quotaOFF(j) = Application.WorksheetFunction.Max(0, 7 - congeParJour(j))
+            Case 6:    quotaOFF(j) = Application.WorksheetFunction.Max(0, 6 - congeParJour(j))
+            Case Else: quotaOFF(j) = Application.WorksheetFunction.Max(0, 5 - congeParJour(j))
         End Select
     Next j
 
@@ -1441,8 +1387,8 @@ Sub GenererPlanningGOOGLELEADS(collabs() As Collaborateur, nb As Integer)
         idx = glIdx(k)
         Dim shiftIdx As Integer
         shiftIdx = ((k - 1 + collabs(idx).IndexRotation) Mod 5) + 1
-        Dim pd As String: pd = AjouterMinutes(entrees(shiftIdx), glPauseOffsetMin)
-        Dim pf As String: pf = AjouterMinutes(pd, glPauseDureeMin)
+        Dim pd As String: pd = AjouterMinutes(entrees(shiftIdx), 300)
+        Dim pf As String: pf = AjouterMinutes(pd, 60)
 
         ' Pause réduite : même heure début pause, fin = sortie réduite si avant fin pause normale
         Dim pDReduit As String: pDReduit = pd
@@ -1481,7 +1427,7 @@ Sub GenererPlanningGOOGLELEADS(collabs() As Collaborateur, nb As Integer)
                 Dim dpr As Integer: dpr = prioriteReduit(pr)
                 If Not joursConge(dpr) And dpr <> off1 And dpr <> off2 Then
                     Dim limiteReduit As Integer
-                    limiteReduit = Application.WorksheetFunction.Max(1, Int(nbGL / glReduitDiviseur) + 1)
+                    limiteReduit = Application.WorksheetFunction.Max(1, Int(nbGL / 7) + 1)
                     If reduitParJour(dpr) < limiteReduit Then
                         jourReduit = dpr
                         Exit For
@@ -1632,37 +1578,10 @@ Sub GenererPlanningTLV(collabs() As Collaborateur, nb As Integer)
     Set ws = ThisWorkbook.Sheets("TLV")
     EcrireEnTeteHorizontale ws, "TLV"
 
-    Dim NOM_SYLLA As String, NOM_DIOP As String, NOM_ABDELAOUI As String, NOM_AZIANE As String
-    NOM_SYLLA = ModuleParametres.GetParam("TLV_NOM1", "SYLLA SOKHNA SAFIETOU")
-    NOM_DIOP = ModuleParametres.GetParam("TLV_NOM2", "DIOP MAMADOU MOUSTAPHA DOKY")
-    NOM_ABDELAOUI = ModuleParametres.GetParam("TLV_NOM3", "ABDELAOUI KHADIJA")
-    NOM_AZIANE = ModuleParametres.GetParam("TLV_NOM4", "AZIANE YASSINE")
-
-    Dim g1_e As String, g1_s As String, g1_pd As String, g1_pf As String
-    g1_e = ModuleParametres.GetParam("TLV_G1_ENTREE", "08:00")
-    g1_s = ModuleParametres.GetParam("TLV_G1_SORTIE", "17:00")
-    g1_pd = ModuleParametres.GetParam("TLV_G1_PAUSED", "13:00")
-    g1_pf = ModuleParametres.GetParam("TLV_G1_PAUSEF", "14:00")
-
-    Dim g2lun_e As String, g2lun_s As String, g2mm_e As String, g2mm_s As String
-    Dim g2jv_e As String, g2jv_s As String, g2sam_e As String, g2sam_s As String
-    Dim g2_pd As String, g2_pf As String
-    g2lun_e = ModuleParametres.GetParam("TLV_G2_LUN_ENTREE", "08:00")
-    g2lun_s = ModuleParametres.GetParam("TLV_G2_LUN_SORTIE", "17:00")
-    g2mm_e = ModuleParametres.GetParam("TLV_G2_MARMER_ENTREE", "08:00")
-    g2mm_s = ModuleParametres.GetParam("TLV_G2_MARMER_SORTIE", "18:00")
-    g2jv_e = ModuleParametres.GetParam("TLV_G2_JEUVEN_ENTREE", "08:00")
-    g2jv_s = ModuleParametres.GetParam("TLV_G2_JEUVEN_SORTIE", "17:00")
-    g2sam_e = ModuleParametres.GetParam("TLV_G2_SAM_ENTREE", "08:00")
-    g2sam_s = ModuleParametres.GetParam("TLV_G2_SAM_SORTIE", "14:00")
-    g2_pd = ModuleParametres.GetParam("TLV_G2_PAUSED", "13:00")
-    g2_pf = ModuleParametres.GetParam("TLV_G2_PAUSEF", "14:00")
-
-    Dim gfb_e As String, gfb_s As String, gfb_pd As String, gfb_pf As String
-    gfb_e = ModuleParametres.GetParam("TLV_FALLBACK_ENTREE", "08:00")
-    gfb_s = ModuleParametres.GetParam("TLV_FALLBACK_SORTIE", "17:00")
-    gfb_pd = ModuleParametres.GetParam("TLV_FALLBACK_PAUSED", "13:00")
-    gfb_pf = ModuleParametres.GetParam("TLV_FALLBACK_PAUSEF", "14:00")
+    Const NOM_SYLLA      As String = "SYLLA SOKHNA SAFIETOU"
+    Const NOM_DIOP       As String = "DIOP MAMADOU MOUSTAPHA DOKY"
+    Const NOM_ABDELAOUI  As String = "ABDELAOUI KHADIJA"
+    Const NOM_AZIANE     As String = "AZIANE YASSINE"
 
     Dim tlvIdx() As Integer
     Dim nbTLV As Integer: nbTLV = 0
@@ -1698,10 +1617,10 @@ Sub GenererPlanningTLV(collabs() As Collaborateur, nb As Integer)
                 If j = 6 Or j = 7 Then  ' Samedi et Dimanche OFF
                     cellules(j) = "OFF"
                     entTab(j) = "": sorTab(j) = "": pdTab(j) = "": pfTab(j) = ""
-                Else  ' Lundi a Vendredi
-                    cellules(j) = FormatCelluleJour(g1_e, g1_s, g1_pd, g1_pf)
-                    entTab(j) = g1_e: sorTab(j) = g1_s
-                    pdTab(j) = g1_pd: pfTab(j) = g1_pf
+                Else  ' Lundi a Vendredi 08:00-17:00
+                    cellules(j) = FormatCelluleJour("08:00", "17:00", "13:00", "14:00")
+                    entTab(j) = "08:00": sorTab(j) = "17:00"
+                    pdTab(j) = "13:00": pfTab(j) = "14:00"
                 End If
             Next j
 
@@ -1736,31 +1655,31 @@ Sub GenererPlanningTLV(collabs() As Collaborateur, nb As Integer)
                             cellules(j) = "OFF"
                             entTab(j) = "": sorTab(j) = "": pdTab(j) = "": pfTab(j) = ""
                         Else
-                            cellules(j) = FormatCelluleJour(g2lun_e, g2lun_s, g2_pd, g2_pf)
-                            entTab(j) = g2lun_e: sorTab(j) = g2lun_s
-                            pdTab(j) = g2_pd: pfTab(j) = g2_pf
+                            cellules(j) = FormatCelluleJour("08:00", "17:00", "13:00", "14:00")
+                            entTab(j) = "08:00": sorTab(j) = "17:00"
+                            pdTab(j) = "13:00": pfTab(j) = "14:00"
                         End If
-                    Case 2  ' Mardi
-                        cellules(j) = FormatCelluleJour(g2mm_e, g2mm_s, g2_pd, g2_pf)
-                        entTab(j) = g2mm_e: sorTab(j) = g2mm_s
-                        pdTab(j) = g2_pd: pfTab(j) = g2_pf
-                    Case 3  ' Mercredi
-                        cellules(j) = FormatCelluleJour(g2mm_e, g2mm_s, g2_pd, g2_pf)
-                        entTab(j) = g2mm_e: sorTab(j) = g2mm_s
-                        pdTab(j) = g2_pd: pfTab(j) = g2_pf
-                    Case 4  ' Jeudi
-                        cellules(j) = FormatCelluleJour(g2jv_e, g2jv_s, g2_pd, g2_pf)
-                        entTab(j) = g2jv_e: sorTab(j) = g2jv_s
-                        pdTab(j) = g2_pd: pfTab(j) = g2_pf
-                    Case 5  ' Vendredi
-                        cellules(j) = FormatCelluleJour(g2jv_e, g2jv_s, g2_pd, g2_pf)
-                        entTab(j) = g2jv_e: sorTab(j) = g2jv_s
-                        pdTab(j) = g2_pd: pfTab(j) = g2_pf
+                    Case 2  ' Mardi 08:00-18:00
+                        cellules(j) = FormatCelluleJour("08:00", "18:00", "13:00", "14:00")
+                        entTab(j) = "08:00": sorTab(j) = "18:00"
+                        pdTab(j) = "13:00": pfTab(j) = "14:00"
+                    Case 3  ' Mercredi 08:00-18:00
+                        cellules(j) = FormatCelluleJour("08:00", "18:00", "13:00", "14:00")
+                        entTab(j) = "08:00": sorTab(j) = "18:00"
+                        pdTab(j) = "13:00": pfTab(j) = "14:00"
+                    Case 4  ' Jeudi 08:00-17:00
+                        cellules(j) = FormatCelluleJour("08:00", "17:00", "13:00", "14:00")
+                        entTab(j) = "08:00": sorTab(j) = "17:00"
+                        pdTab(j) = "13:00": pfTab(j) = "14:00"
+                    Case 5  ' Vendredi 08:00-17:00
+                        cellules(j) = FormatCelluleJour("08:00", "17:00", "13:00", "14:00")
+                        entTab(j) = "08:00": sorTab(j) = "17:00"
+                        pdTab(j) = "13:00": pfTab(j) = "14:00"
                     Case 6  ' Samedi
                         If offLundi Then
-                            ' Travaille Samedi
-                            cellules(j) = FormatCelluleJour(g2sam_e, g2sam_s, "", "")
-                            entTab(j) = g2sam_e: sorTab(j) = g2sam_s
+                            ' Travaille Samedi 08:00-14:00
+                            cellules(j) = FormatCelluleJour("08:00", "14:00", "", "")
+                            entTab(j) = "08:00": sorTab(j) = "14:00"
                             pdTab(j) = "": pfTab(j) = ""
                         Else
                             ' OFF Samedi
@@ -1782,9 +1701,9 @@ Sub GenererPlanningTLV(collabs() As Collaborateur, nb As Integer)
                     cellules(j) = "OFF"
                     entTab(j) = "": sorTab(j) = "": pdTab(j) = "": pfTab(j) = ""
                 Else
-                    cellules(j) = FormatCelluleJour(gfb_e, gfb_s, gfb_pd, gfb_pf)
-                    entTab(j) = gfb_e: sorTab(j) = gfb_s
-                    pdTab(j) = gfb_pd: pfTab(j) = gfb_pf
+                    cellules(j) = FormatCelluleJour("08:00", "17:00", "13:00", "14:00")
+                    entTab(j) = "08:00": sorTab(j) = "17:00"
+                    pdTab(j) = "13:00": pfTab(j) = "14:00"
                 End If
             Next j
         End If
@@ -1812,18 +1731,9 @@ Sub GenererPlanningFactoDAC(nomFeuille As String, collabs() As Collaborateur, nb
     Set ws = ThisWorkbook.Sheets(nomFeuille)
     EcrireEnTeteHorizontale ws, nomFeuille
 
-    Dim px As String: px = UCase(nomFeuille)   ' "FACTO" ou "DAC"
-
     Dim entrees(1 To 2) As String: Dim sorties(1 To 2) As String
-    entrees(1) = ModuleParametres.GetParam(px & "_SHIFT1_ENTREE", "07:00")
-    sorties(1) = ModuleParametres.GetParam(px & "_SHIFT1_SORTIE", "17:00")
-    entrees(2) = ModuleParametres.GetParam(px & "_SHIFT2_ENTREE", "08:00")
-    sorties(2) = ModuleParametres.GetParam(px & "_SHIFT2_SORTIE", "18:00")
-
-    Dim fdReductionVen As Integer, fdPauseOffset As Integer, fdPauseDuree As Integer
-    fdReductionVen = CInt(ModuleParametres.GetParamNum(px & "_VEN_REDUCTION_MIN", 60))
-    fdPauseOffset = CInt(ModuleParametres.GetParamNum(px & "_PAUSE_OFFSET_MIN", 300))
-    fdPauseDuree = CInt(ModuleParametres.GetParamNum(px & "_PAUSE_DUREE_MIN", 60))
+    entrees(1) = "07:00": sorties(1) = "17:00"
+    entrees(2) = "08:00": sorties(2) = "18:00"
 
     Dim fdIdx() As Integer
     Dim nbFD As Integer: nbFD = 0
@@ -1845,9 +1755,9 @@ Sub GenererPlanningFactoDAC(nomFeuille As String, collabs() As Collaborateur, nb
         shiftIdx = ((k - 1 + collabs(idx).IndexRotation) Mod 2) + 1
 
         Dim finNormale As String: finNormale = sorties(shiftIdx)
-        Dim finVen As String: finVen = AjouterMinutes(finNormale, -fdReductionVen)
-        Dim pd As String: pd = AjouterMinutes(entrees(shiftIdx), fdPauseOffset)
-        Dim pf As String: pf = AjouterMinutes(pd, fdPauseDuree)
+        Dim finVen As String: finVen = AjouterMinutes(finNormale, -60)
+        Dim pd As String: pd = AjouterMinutes(entrees(shiftIdx), 300)
+        Dim pf As String: pf = AjouterMinutes(pd, 60)
 
         Dim cellules(1 To 7) As String
         Dim entTab(1 To 7) As String
@@ -1879,8 +1789,7 @@ Sub GenererPlanningFactoDAC(nomFeuille As String, collabs() As Collaborateur, nb
 
     If ligne > 4 Then
         ligne = ligne + 1
-        ws.Cells(ligne, 1).Value = "SHIFTS " & UCase(nomFeuille) & " | Shift 1: " & entrees(1) & "-" & sorties(1) & _
-                                    " | Shift 2: " & entrees(2) & "-" & sorties(2) & " | Ven -" & fdReductionVen & "min"
+        ws.Cells(ligne, 1).Value = "SHIFTS " & UCase(nomFeuille) & " | Shift 1: 07-17 | Shift 2: 08-18 | Ven -1h"
         ws.Cells(ligne, 1).Font.Bold = True: ws.Cells(ligne, 1).Font.Color = RGB(31, 73, 125)
     End If
     AppliquerBorduresH ws, 4, ligne - 2
