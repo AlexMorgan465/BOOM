@@ -395,7 +395,7 @@ Sub InitialiserFeuilleConsolidation()
     Dim headers As Variant
     headers = Array("Nom", "Date", "Entree", "Sortie", "Pause D", "Pause F", _
                     "No Semaine", "Activite", "Conge D", "Conge F", "Ville", "Zone", _
-                    "NB HEURE", "NB JOUR")
+                    "NB HEURE", "NB JOUR", "Commentaire")
     Dim c As Integer
     For c = 0 To UBound(headers)
         ws.Cells(1, c + 1).Value = headers(c)
@@ -421,6 +421,7 @@ Sub InitialiserFeuilleConsolidation()
     ws.Columns("L").ColumnWidth = 14
     ws.Columns("M").ColumnWidth = 12
     ws.Columns("N").ColumnWidth = 12
+    ws.Columns("O").ColumnWidth = 30   ' Commentaire
 End Sub
 
 Sub AjouterLigneConsolidation(collab As Collaborateur, d As Date, _
@@ -768,7 +769,7 @@ Sub EffacerAnciensPlannings()
     Dim wsC As Worksheet
     Set wsC = ThisWorkbook.Sheets("CONSOLIDATION")
     If wsC.Cells(wsC.Rows.Count, 1).End(xlUp).Row > 1 Then
-        wsC.Range(wsC.Cells(2, 1), wsC.Cells(wsC.Rows.Count, 14)).Clear
+        wsC.Range(wsC.Cells(2, 1), wsC.Cells(wsC.Rows.Count, 15)).Clear
     End If
     Dim wsP As Worksheet
     Set wsP = ThisWorkbook.Sheets("PLANNING")
