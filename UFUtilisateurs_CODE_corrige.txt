@@ -402,19 +402,32 @@ End Sub
 ' laisse telle quelle. Corrige l'affichage de type "0,375" au lieu
 ' de "09:00" dans le planning.
 Private Function FormatValeurPlanning(v As Variant) As String
-    If IsEmpty(v) Then
+    On Error GoTo Secours
+    If IsEmpty(v) Or IsNull(v) Then
         FormatValeurPlanning = ""
-    ElseIf VarType(v) = vbString Then
+        Exit Function
+    End If
+    If VarType(v) = vbString Then
         FormatValeurPlanning = CStr(v)
-    ElseIf IsNumeric(v) Then
-        If CDbl(v) = 0 Then
+        Exit Function
+    End If
+    If IsNumeric(v) Then
+        Dim d As Double: d = CDbl(v)
+        If d = 0 Then
             FormatValeurPlanning = ""
         Else
-            FormatValeurPlanning = Format(CDbl(v), "hh:mm")
+            FormatValeurPlanning = Format(d, "hh:mm")
         End If
-    Else
-        FormatValeurPlanning = CStr(v)
+        Exit Function
     End If
+    FormatValeurPlanning = CStr(v)
+    Exit Function
+Secours:
+    ' En cas de type inattendu (erreur, tableau, etc.), on ne bloque pas
+    ' le chargement du planning : on affiche la valeur brute si possible.
+    On Error Resume Next
+    FormatValeurPlanning = CStr(v)
+    On Error GoTo 0
 End Function
 
 Private Function EstHeureValide(h As String) As Boolean
