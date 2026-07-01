@@ -43,8 +43,9 @@ Private Sub UserForm_Initialize()
     Dim ic As Integer
     For ic = 0 To UBound(categories)
         Dim pg As MSForms.Page
-        mp.Pages.Add , , CStr(categories(ic))
-        Set pg = mp.Pages(ic)
+        mp.Pages.Add
+        Set pg = mp.Pages(mp.Pages.Count - 1)
+        pg.Caption = CStr(categories(ic))
         pg.ScrollBars = fmScrollBarsVertical
 
         Dim colLarg As Single: colLarg = (mp.Width - 40) / 2
