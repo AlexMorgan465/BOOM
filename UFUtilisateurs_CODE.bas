@@ -595,3 +595,4 @@ Private Sub cmdMettreAJour_Click()
 
     MsgBox "Planning de la semaine " & semCible & " mis à jour pour " & nomComplet & ".", vbInformation
 End Sub
+
