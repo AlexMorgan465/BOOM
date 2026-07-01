@@ -1,0 +1,126 @@
+Attribute VB_Name = "UFParametres"
+Option Explicit
+
+' ============================================================
+' USERFORM DE PARAMETRAGE DU PLANNING
+' Ce code va dans le module de code d'un UserForm VIDE nomme
+' "UFParametres" (Insertion > UserForm dans le VBE, renommer
+' via la fenetre Proprietes F4). Tous les controles (onglets,
+' champs, boutons) sont crees dynamiquement au demarrage :
+' aucune mise en page manuelle n'est necessaire.
+' ============================================================
+
+Private WithEvents mp As MSForms.MultiPage
+Private WithEvents cmdDefaut As MSForms.CommandButton
+Private WithEvents cmdEnregistrer As MSForms.CommandButton
+Private WithEvents cmdAnnuler As MSForms.CommandButton
+Private champs As Object   ' Scripting.Dictionary : Cle -> TextBox
+
+Private Const LARG_FORM As Single = 620
+Private Const HAUT_FORM As Single = 480
+Private Const HAUT_ONGLET As Single = 380
+
+Private Sub UserForm_Initialize()
+    Me.Caption = "Parametres du planning"
+    Me.Width = LARG_FORM
+    Me.Height = HAUT_FORM
+    Set champs = CreateObject("Scripting.Dictionary")
+
+    Set mp = Me.Controls.Add("Forms.MultiPage.1", "mpParams", True)
+    mp.Left = 10: mp.Top = 10
+    mp.Width = LARG_FORM - 30
+    mp.Height = HAUT_ONGLET
+
+    ' Supprimer les 2 pages par defaut, elles seront recreees par categorie
+    Do While mp.Pages.Count > 0
+        mp.Pages.Remove 0
+    Loop
+
+    Dim cat As Variant: cat = ModuleParametres.CatalogueParametres()
+
+    Dim categories As Variant: categories = Array("AFEDIM", "ACCESSIBILITE", "CM LEASING", "GLF", "EBRA", "GOOGLE LEADS", "TLV", "FACTO", "DAC")
+
+    Dim ic As Integer
+    For ic = 0 To UBound(categories)
+        Dim pg As MSForms.Page
+        mp.Pages.Add , , CStr(categories(ic))
+        Set pg = mp.Pages(ic)
+        pg.ScrollBars = fmScrollBarsVertical
+
+        Dim colLarg As Single: colLarg = (mp.Width - 40) / 2
+        Dim ligneH As Single: ligneH = 26
+        Dim posCol As Integer: posCol = 0   ' 0 ou 1
+        Dim posLigne As Integer: posLigne = 0
+        Dim maxLigne As Integer: maxLigne = 0
+
+        Dim i As Long
+        For i = 1 To UBound(cat, 1)
+            If cat(i, 1) = categories(ic) Then
+                Dim lbl As MSForms.Label
+                Dim txt As MSForms.TextBox
+                Dim xBase As Single: xBase = 10 + posCol * (colLarg + 10)
+                Dim yBase As Single: yBase = 10 + posLigne * ligneH
+
+                Set lbl = pg.Controls.Add("Forms.Label.1")
+                lbl.Left = xBase: lbl.Top = yBase
+                lbl.Width = colLarg * 0.55: lbl.Height = 18
+                lbl.Caption = CStr(cat(i, 3))
+                lbl.Font.Size = 8
+
+                Set txt = pg.Controls.Add("Forms.TextBox.1")
+                txt.Left = xBase + colLarg * 0.55: txt.Top = yBase
+                txt.Width = colLarg * 0.42: txt.Height = 18
+                txt.Font.Size = 8
+                txt.Text = ModuleParametres.GetParam(CStr(cat(i, 2)), CStr(cat(i, 4)))
+                champs.Add CStr(cat(i, 2)), txt
+
+                posCol = posCol + 1
+                If posCol > 1 Then
+                    posCol = 0
+                    posLigne = posLigne + 1
+                End If
+                If posLigne > maxLigne Then maxLigne = posLigne
+            End If
+        Next i
+        pg.ScrollHeight = (maxLigne + 2) * ligneH
+    Next ic
+
+    ' Boutons bas de formulaire
+    Set cmdDefaut = Me.Controls.Add("Forms.CommandButton.1", "cmdDefaut", True)
+    cmdDefaut.Caption = "Valeurs par defaut"
+    cmdDefaut.Left = 10: cmdDefaut.Top = HAUT_ONGLET + 20: cmdDefaut.Width = 140: cmdDefaut.Height = 26
+
+    Set cmdEnregistrer = Me.Controls.Add("Forms.CommandButton.1", "cmdEnregistrer", True)
+    cmdEnregistrer.Caption = "Enregistrer et fermer"
+    cmdEnregistrer.Left = LARG_FORM - 320: cmdEnregistrer.Top = HAUT_ONGLET + 20
+    cmdEnregistrer.Width = 150: cmdEnregistrer.Height = 26
+
+    Set cmdAnnuler = Me.Controls.Add("Forms.CommandButton.1", "cmdAnnuler", True)
+    cmdAnnuler.Caption = "Annuler"
+    cmdAnnuler.Left = LARG_FORM - 160: cmdAnnuler.Top = HAUT_ONGLET + 20
+    cmdAnnuler.Width = 120: cmdAnnuler.Height = 26
+End Sub
+
+Private Sub cmdDefaut_Click()
+    If MsgBox("Restaurer toutes les valeurs par defaut (ecrase les valeurs actuellement affichees) ?", vbYesNo + vbQuestion) = vbNo Then Exit Sub
+    Dim cat As Variant: cat = ModuleParametres.CatalogueParametres()
+    Dim i As Long
+    For i = 1 To UBound(cat, 1)
+        Dim cle As String: cle = CStr(cat(i, 2))
+        If champs.Exists(cle) Then champs(cle).Text = CStr(cat(i, 4))
+    Next i
+End Sub
+
+Private Sub cmdEnregistrer_Click()
+    Dim cle As Variant
+    For Each cle In champs.Keys
+        ModuleParametres.SetParam CStr(cle), champs(cle).Text
+    Next cle
+    MsgBox "Parametres enregistres. Ils seront utilises au prochain ""Generer Planning"".", vbInformation
+    Unload Me
+End Sub
+
+Private Sub cmdAnnuler_Click()
+    Unload Me
+End Sub
+
