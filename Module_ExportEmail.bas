@@ -10,54 +10,79 @@ Option Explicit
 
 
 ' ============================================================
-' BOUTON 1 : EXPORTER TOUTES LES FEUILLES DANS UN NOUVEAU CLASSEUR
+' BOUTON 1 : EXPORTER UN CLASSEUR PAR ACTIVITE, DANS UN DOSSIER
+'            NOMME COMME L'ACTIVITE
 ' ============================================================
-Sub ExporterToutesFeuilles()
-    Dim wbSource As Workbook
+' Résultat :
+'   <dossier choisi>\AFEDIM\AFEDIM_S27_2026-07-02.xlsx
+'   <dossier choisi>\EBRA\EBRA_S27_2026-07-02.xlsx
+'   <dossier choisi>\GOOGLE LEADS\GOOGLE LEADS_S27_2026-07-02.xlsx
+'   ... etc, un classeur par feuille d'activité (planning de semaine).
+'
+' Les feuilles "techniques" (Utilisateurs, BESOINS, ROTATION,
+' CONSOLIDATION, PLANNING global) ne sont PAS exportées : seules les
+' feuilles de planning par activité le sont. Si une nouvelle activité
+' est ajoutée plus tard (nouvelle feuille), elle sera exportée
+' automatiquement sans modifier ce code.
+Sub ExporterPlanningsParActivite()
+    Dim wsSource As Worksheet
     Dim wbExport As Workbook
-    Dim sh As Object
-    Dim nomDefaut As String
-    Dim cheminFichier As Variant
+    Dim dossierParent As String
+    Dim dossierActivite As String
+    Dim nomFichier As String
+    Dim sem As Integer
+    Dim feuillesTechniques As Variant
+    Dim nomFeuille As String
+    Dim compteur As Integer
+    Dim fd As Object
 
-    Set wbSource = ThisWorkbook
+    feuillesTechniques = Array("UTILISATEURS", "BESOINS", "ROTATION", "CONSOLIDATION", "PLANNING")
+
+    ' Choix du dossier parent où créer les sous-dossiers par activité
+    Set fd = Application.FileDialog(4) ' 4 = msoFileDialogFolderPicker
+    fd.Title = "Choisir le dossier où exporter les plannings par activité"
+    If fd.Show <> -1 Then Exit Sub ' annulé par l'utilisateur
+    dossierParent = fd.SelectedItems(1)
+    If Right(dossierParent, 1) <> "\" Then dossierParent = dossierParent & "\"
 
     On Error Resume Next
-    nomDefaut = "Export_Planning_S" & Application.WorksheetFunction.WeekNum(Date, 2) & _
-                "_" & Format(Now, "yyyy-mm-dd_hhmm") & ".xlsx"
+    sem = Application.WorksheetFunction.WeekNum(IIf(g_LundiCible = 0, LundiSemaineAuto(), g_LundiCible), 2)
     On Error GoTo 0
-
-    cheminFichier = Application.GetSaveAsFilename( _
-        InitialFileName:=nomDefaut, _
-        FileFilter:="Classeur Excel (*.xlsx), *.xlsx", _
-        Title:="Exporter toutes les feuilles sous...")
-
-    If cheminFichier = False Then Exit Sub ' annulé par l'utilisateur
 
     On Error GoTo ErrHandler
     Application.ScreenUpdating = False
     Application.DisplayAlerts = False
+    compteur = 0
 
-    ' Copie TOUTES les feuilles (y compris masquées) dans un nouveau classeur
-    wbSource.Sheets.Copy
-    Set wbExport = ActiveWorkbook
+    For Each wsSource In ThisWorkbook.Worksheets
+        nomFeuille = wsSource.Name
+        If Not EstFeuilleTechnique(nomFeuille, feuillesTechniques) Then
 
-    ' Fige les formules en valeurs pour que l'export soit autonome
-    ' (sinon les formules qui pointent vers le classeur source seraient cassées)
-    For Each sh In wbExport.Sheets
-        If TypeOf sh Is Worksheet Then
-            If sh.UsedRange.Cells.CountLarge > 0 Then
-                sh.UsedRange.Value = sh.UsedRange.Value
-            End If
+            ' Créer le sous-dossier au nom de l'activité s'il n'existe pas
+            dossierActivite = dossierParent & NettoyerNomDossier(nomFeuille) & "\"
+            If Dir(dossierActivite, vbDirectory) = "" Then MkDir dossierActivite
+
+            ' Copier UNIQUEMENT cette feuille (planning de la semaine) dans un nouveau classeur
+            wsSource.Copy
+            Set wbExport = ActiveWorkbook
+
+            ' Fige les formules en valeurs pour que l'export soit autonome
+            With wbExport.Worksheets(1).UsedRange
+                .Value = .Value
+            End With
+
+            nomFichier = dossierActivite & NettoyerNomDossier(nomFeuille) & "_S" & sem & "_" & Format(Now, "yyyy-mm-dd") & ".xlsx"
+            wbExport.SaveAs Filename:=nomFichier, FileFormat:=xlOpenXMLWorkbook
+            wbExport.Close SaveChanges:=False
+            compteur = compteur + 1
         End If
-    Next sh
-
-    wbExport.SaveAs Filename:=cheminFichier, FileFormat:=xlOpenXMLWorkbook
-    wbExport.Close SaveChanges:=False
+    Next wsSource
 
     Application.DisplayAlerts = True
     Application.ScreenUpdating = True
 
-    MsgBox "Export réalisé avec succès :" & Chr(10) & cheminFichier, vbInformation, "Export terminé"
+    MsgBox compteur & " classeur(s) d'activité exporté(s) avec succès dans :" & Chr(10) & dossierParent, _
+           vbInformation, "Export terminé"
     Exit Sub
 
 ErrHandler:
@@ -65,6 +90,31 @@ ErrHandler:
     Application.ScreenUpdating = True
     MsgBox "Erreur lors de l'export : " & Err.Description, vbCritical, "Erreur"
 End Sub
+
+' Indique si une feuille est une feuille "technique" (à ne jamais exporter
+' comme planning d'activité)
+Private Function EstFeuilleTechnique(nom As String, liste As Variant) As Boolean
+    Dim v As Variant
+    For Each v In liste
+        If UCase(nom) = v Then
+            EstFeuilleTechnique = True
+            Exit Function
+        End If
+    Next v
+    EstFeuilleTechnique = False
+End Function
+
+' Nettoie un nom de feuille pour en faire un nom de dossier/fichier valide
+' sous Windows (remplace les caractères interdits)
+Private Function NettoyerNomDossier(nom As String) As String
+    Dim car As Variant
+    Dim resultat As String
+    resultat = nom
+    For Each car In Array("\", "/", ":", "*", "?", """", "<", ">", "|")
+        resultat = Replace(resultat, car, "-")
+    Next car
+    NettoyerNomDossier = Trim(resultat)
+End Function
 
 
 ' ============================================================
